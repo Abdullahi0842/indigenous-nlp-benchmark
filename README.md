@@ -112,25 +112,25 @@ Students should complete and submit:
 
 | Component | Points | Criteria |
 |-----------|--------|----------|
-| Data Collection | 20 | Correctly formatted JSONL with valid schema |
-| Tokenization | 25 | Proper handling of diacritics and stop words |
+| Data Collection | 20% | Correctly formatted JSON with valid schema |
+| Tokenization | 25% | Proper handling of diacritics and stop words |
 | Zipf's Law Analysis | 20 | Accurate linear regression and interpretation |
-| Bigram Model | 25 | Working implementation with correct perplexity |
-| Report & Collaboration | 10 | Clear writing and multi-author commits |
+| Bigram Model | 25% | Working implementation with correct perplexity |
+| Report & Collaboration | 10% | Clear writing and multi-author commits |
 
 ## Resources
-
-- **Nupe Language**: [Project Documentation](https://en.wikipedia.org/wiki/Nupe_language)
-- **Gbagyi Language**: [Project Documentation](https://en.wikipedia.org/wiki/Gbagyi_language)
+- **NLP Class Resource**: [NLP Tutorial esp NLP Fundamentals and N-Language Models](https://github.com/abdullahikawu/nlp-class)
+- **About Nupe Language**: [Project Documentation](https://en.wikipedia.org/wiki/Nupe_language)
+- **About Gbagyi Language**: [Project Documentation](https://en.wikipedia.org/wiki/Gbagyi_language)
 - **Zipf's Law**: [Wikipedia](https://en.wikipedia.org/wiki/Zipf%27s_law)
 - **Language Modeling**: [Speech and Language Processing (Jurafsky & Martin)](https://web.stanford.edu/~jurafsky/slp3/)
 
 ## Support & Questions
 
 For issues or clarifications:
-1. Check existing GitHub Issues
+1. Ask in the class group
 2. Consult the assignment notebook comments
-3. Contact your instructor
+3. Contact your Lecturer
 
 ## License
 
@@ -140,4 +140,4 @@ This repository is provided for educational purposes under the MIT License.
 
 **Last Updated**: 2024  
 **Course Level**: Intermediate NLP / Linguistics  
-**Duration**: 2-3 weeks per language
+**Duration**: 1 week per language - Due September 1st 2026
