@@ -20,7 +20,7 @@ indigenous-nlp-benchmark/
 ├── .github/
 │   └── workflows/
 │       └── autograder.yml            # GitHub Actions CI/CD workflow
-├─��� data/
+├── data/
 │   ├── nupe/
 │   │   ├── raw/                      # Raw scraped text data
 │   │   └── processed/                # Cleaned and tokenized text
@@ -138,6 +138,7 @@ This repository is provided for educational purposes under the MIT License.
 
 ---
 
-**Last Updated**: 2024  
-**Course Level**: Intermediate NLP / Linguistics  
-**Duration**: 1 week per language - Due September 1st 2026
+**Last Updated**: 25/08/2026
+**Course Name**: CSC 406 - Artificial Intelligence
+**Course Level**: Beginner to Intermediate NLP / Linguistics  
+**Duration**: 1 week - Due September 1st 2026
