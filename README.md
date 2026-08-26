@@ -114,12 +114,14 @@ Students should complete and submit:
 |-----------|--------|----------|
 | Data Collection | 20% | Correctly formatted JSON with valid schema |
 | Tokenization | 25% | Proper handling of diacritics and stop words |
-| Zipf's Law Analysis | 20 | Accurate linear regression and interpretation |
+| Zipf's Law Analysis | 20% | Accurate linear regression and interpretation |
 | Bigram Model | 25% | Working implementation with correct perplexity |
 | Report & Collaboration | 10% | Clear writing and multi-author commits |
 
 ## Resources
-- **NLP Class Resource**: [NLP Tutorial esp NLP Fundamentals and N-Language Models](https://github.com/abdullahikawu/nlp-class)
+- **NLP Class Resource**: [Read/Watch NLP Tutorial esp NLP Fundamentals and N-Language Models](https://github.com/abdullahikawu/nlp-class)
+- **Video Tutorial Code for this assignment**: [NLP Tutorial](https://www.youtube.com/watch?v=JdtuvnOhCZM)
+- **Tutorial for this assignment**: [NLP Tutorial](https://github.com/abdullahikawu/nlp-class/blob/master/homework/HW1/assignment.ipynb)
 - **About Nupe Language**: [Project Documentation](https://en.wikipedia.org/wiki/Nupe_language)
 - **About Gbagyi Language**: [Project Documentation](https://en.wikipedia.org/wiki/Gbagyi_language)
 - **Zipf's Law**: [Wikipedia](https://en.wikipedia.org/wiki/Zipf%27s_law)
