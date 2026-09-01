@@ -4,6 +4,7 @@ import pytest
 import json
 import subprocess
 import sys
+import re
 from pathlib import Path
 
 class TestJSONLSchema:
@@ -63,6 +64,16 @@ class TestBigramModel:
     """Test the BigramModel implementation dynamically per PR."""
     
     def test_bigram_perplexity(self):
+        """
+        Test BigramModel by importing from submissions and evaluating perplexity.
+        
+        Requirements:
+        - BigramModel class must be importable from student submission
+        - Model must fit on processed corpus
+        - Perplexity on test set must be finite and positive
+        - Perplexity should be < 1000 for reasonable models
+        """
+        
         # 1. Identify modified/added files in this specific Pull Request
         try:
             result = subprocess.run(
@@ -88,8 +99,14 @@ class TestBigramModel:
         if not py_file_path.exists():
             pytest.fail(f"Could not find HW1_assignment.py in {student_dir}. Ensure your notebook is named correctly.")
 
-        # 4. Extract language name from directory convention (e.g., 'group_01_nupe' -> 'nupe')
-        language = student_dir.name.split('_')[-1]
+        # 4. Extract language name from directory convention using regex (e.g., 'group_01_nupe' -> 'nupe', 'group_1_gbagyi' -> 'gbagyi')
+        group_name = student_dir.name
+        match = re.search(r'group_\d+_(.+)$', group_name)
+        
+        if not match:
+            pytest.fail(f"Could not extract language from directory: {group_name}")
+        
+        language = match.group(1)
         
         corpus_path = Path(f"data/{language}/processed/{language}_corpus.txt")
         test_path = Path(f"tests/test_{language}_unseen.txt")
