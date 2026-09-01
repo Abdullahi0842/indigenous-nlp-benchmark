@@ -36,9 +36,14 @@ jobs:
 
       - name: Auto-convert Notebooks to Python Scripts
         run: |
-          # Converts any student HW1_assignment.ipynb into HW1_assignment.py 
-          # inside their respective submission directories before running pytest
-          jupyter nbconvert --to script submissions/*/*/*.ipynb || true
+          find submissions -name "HW1_assignment.ipynb" -print0 | while IFS= read -r -d '' notebook; do
+            echo "Converting: $notebook"
+            jupyter nbconvert --to script "$notebook"
+          done
+
+      - name: Verify converted files
+        run: |
+          find submissions -name "HW1_assignment.py" -print
 
       - name: Run autograder test suite
         run: |
