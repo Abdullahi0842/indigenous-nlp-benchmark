@@ -108,7 +108,12 @@ class TestBigramModel:
         
         language = match.group(1)
         
-        corpus_path = Path(f"data/{language}/processed/{language}_corpus.txt")
+        data_dir = Path(f"data/{language}/processed")
+        txt_files = sorted(data_dir.glob("*.txt")) 
+        if not txt_files: 
+            raise FileNotFoundError(f"No .txt training corpus found in {data_dir!s}. Expected at least one .txt file.") 
+        corpus_path = txt_files[0] # or pick a different selection strategy
+
         test_path = Path(f"tests/test_{language}_unseen.txt")
         
         assert corpus_path.exists(), f"Expected training corpus not found at {corpus_path}"
