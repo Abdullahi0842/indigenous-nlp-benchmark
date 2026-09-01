@@ -7,7 +7,7 @@
 
 ## Abstract
 
-This report describes a reproducible low-resource NLP pipeline for Gbagyi. Authentic public Gbagyi text was collected with Python `requests` from Biblica / YouVersion chapter pages that `robots.txt` permits, then normalised with Unicode-safe regular expressions and a custom tokenizer. The processed corpus contains **22,127 sentences**, **403,441 word tokens**, and a word vocabulary of **12,798**. Ordinary least squares on the log–log rank–frequency curve estimates a Zipf exponent **s = 1.4021** (R² = 0.9791). A from-scratch bigram model with Laplace (Add-1) smoothing attains a perplexity of **1400.8026** on the instructor’s unchanged file `tests/test_gbagyi_unseen.txt`. No sentences were fabricated.
+This report presents a reproducible, low-resource NLP pipeline built for Gbagyi. Authentic public Gbagyi text was collected with Python `requests` from Biblica / YouVersion chapter pages that `robots.txt` permits, then normalised with Unicode-safe regular expressions and a custom tokenizer. The processed corpus contains **22,127 sentences**, **403,441 word tokens**, and a word vocabulary of **12,798**. Ordinary least squares on the log–log rank–frequency curve estimates a Zipf exponent **s = 1.4021** (R² = 0.9791). A from-scratch bigram model with Laplace (Add-1) smoothing attains a perplexity of **1400.8026** on the instructor’s unchanged file `tests/test_gbagyi_unseen.txt`. No sentences were fabricated.
 
 ## 1. Introduction
 
@@ -17,7 +17,7 @@ The instructor’s Gbagyi unseen file is scripture-register prose (`shekwoi`, `j
 
 ## 2. Objectives
 
-1. Collect authentic Gbagyi documents with documented provenance.
+1. gather authentic Gbagyi documents with clearly documented provenance.
 2. Implement Unicode-safe cleaning and a custom tokenizer aligned with the unseen-test format.
 3. Curate at least 30 attested Gbagyi function words without inventing glosses.
 4. Estimate the Zipf exponent from the real corpus.
