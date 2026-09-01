@@ -25,7 +25,7 @@ The instructor’s Gbagyi unseen file is scripture-register prose (`shekwoi`, `j
 
 ## 3. Data sources and provenance
 
-Raw JSONL stores every successful fetch, including English catalogue/encyclopedia pages. Those pages are **not** Gbagyi running text. The processed corpus is built only from authentic Gbagyi sentences after documented filters.
+Raw JSONL stores every successful fetch data, including English catalogue/encyclopedia pages. Those pages are **not** Gbagyi running text. The processed corpus is built only from authentic Gbagyi sentences after documented filters.
 
 ### Source classes
 
