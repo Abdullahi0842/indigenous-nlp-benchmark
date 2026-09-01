@@ -17,7 +17,7 @@ The instructor’s Gbagyi unseen file is scripture-register prose (`shekwoi`, `j
 
 ## 2. Objectives
 
-1. Collect authentic Gbagyi documents with clearly documented provenance.
+1. gather authentic Gbagyi documents with clearly documented provenance.
 2. Implement Unicode-safe cleaning and a custom tokenizer aligned with the unseen-test format.
 3. Curate at least 30 attested Gbagyi function words without inventing glosses.
 4. Estimate the Zipf exponent from the real corpus.
