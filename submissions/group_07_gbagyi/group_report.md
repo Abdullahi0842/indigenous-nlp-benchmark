@@ -1,299 +1,320 @@
 Indigenous Language AI Benchmark: Empirical NLP for Gbagyi
 
 Group 07, Gbagyi (Gbagyi-Nkwa track)
+
 Course: CSC 406, Artificial Intelligence
+
 Assignment: Indigenous Language AI Benchmark
+
 Date: 2026-08-30
 
 Abstract
 
-This report presents a reproducible, low-resource NLP pipeline built for the Gbagyi language/tribe. We collected authentic public Gbagyi text with Python requests from Biblica/YouVersion chapter pages that robots.txt permits, then normalised it with Unicode-safe regular expressions and a custom tokeniser. The processed corpus contains 22,127 sentences, 403,441 word tokens, and a vocabulary of 12,798 words. Ordinary least squares on the log–log rank–frequency curve estimates a Zipf exponent s = 1.4021 (R² = 0.9791). A from-scratch bigram model with Laplace (Add-1) smoothing attains a perplexity of 1400.8026 on the instructor’s unchanged file tests/test_gbagyi_unseen.txt. No sentences were fabricated.
+This report details the creation of a reproducible, low-resource NLP pipeline for the Gbagyi language/tribe. We obtained real Gbagyi text by collecting, using Python requests, material from theBiblica/YouVersion Bible pages, checkingrobots.txt and avoiding non-Gbagyi materials. This text was cleaned and tokenized using Unicode-safe regular expressions and a custom tokenizer. 
+
+The pipeline yields a corpus of 22,127 sentences, 403,441 word tokens, and 12,798 unique words. 
+
+ThroughOrdinary least squares regression on the log-log rank-frequency curve, we estimated the Zipf exponent s = 1.4021 (R = 0.9791). A from-scratch bigram model with Laplace smoothing attained a perplexity of 1400.8026 on the instructor’s unmodified testing file tests/testgbagyiunseen.txt. No sentences were manually produced.
 
 1. Introduction
 
-Gbagyi (ISO 639-3: gbr) is a Nupoid language of central Nigeria. Written resources are sparse, orthography is not fully standardised, and tone is often unmarked in published digital text. This assignment asks each group to build an inspectable baseline: scrape authentic text, tokenise it without English pretrained tools, test Zipf’s law, and estimate a smoothed n-gram language model.
+The Gbagyi language (ISO 639-3: gbr) is a Nupoid language spoken in the central region of Nigeria. There are few documented textual sources and orthography inconsistencies. In published text, tone markers are often omitted. 
 
-The instructor’s Gbagyi unseen file is scripture-register prose (shekwoi, jesun, yahudiyi, aduwa). We therefore prioritised publicly readable Gbagyi Bible chapters that match that register, after verifying that requests receive server-rendered text and that robots.txt allows /bible/ paths.
+The objective is to develop an explainable basic NLP setup: scrape Gbagyi documents that are publicly readable and match the scripture context in the official testing file. 
+
+The approach includes implementing a suitable scraper, building a custom tokenizer that works with Gbagyi, applying a standard set of tests: Zipf's law and an n-gram language model on data scraped without leveraging English pretrained NLP techniques.
+
+The given unseen testing file uses the bible/shekwoi style of registers: scripture-in particular Yahudiyi, shekwoi, aduwa, and jesun-which we are using as our main source, and from which we carefully pick our documents from Biblia/YouVersion after checking we receive the needed html with no captcha on the web. We additionally look at Wikipedia and similar entries with caution as our secondary source as they describe Gbagyi more broadly, however, as noted below. Robots.txt is inspected and allowed resources selected.
 
 2. Objectives
 
-1. Gather authentic Gbagyi documents with clearly documented provenance.
-2. Implement Unicode-safe cleaning and a custom tokeniser aligned with the unseen-test format.
-3. Curate at least 30 attested Gbagyi function words without inventing glosses.
-4. Estimate the Zipf exponent from the real corpus.
-5. Train unigram and Add-1 bigram models from scratch and evaluate perplexity on the official test file.
+1. Design and implement data collection and provenance systems that result in real, attested Gbagyi texts.
+
+2. Ensure that tokenization uses Unicode-safe techniques.
+
+3. Produce an accurate list of at least 30 common Gbagyi function words, without any additions based on assumed meaning.
+
+4. Calculate the Zipf exponent from the sourced Gbagyi corpus.
+
+5. Implement and evaluate both unigram and Add-1 smoothed bigram models, training them from scratch and measuring perplexity against the given testing file.
 
 3. Data sources and provenance
 
-The raw data file (JSONL) records every webpage the scraper successfully downloaded, including English catalogue/encyclopedia pages. Those pages are not Gbagyi running text. The processed corpus is built only from authentic Gbagyi sentences after documented filters.
+The JSONL file, the scraped data before processing, has been systematically organized. One line contains one fetched URL and the text on the page requested. Several were website indices and Wikipedia, these are discarded and only noted in Table 1. The real Gbagyi texts came only from the scriptural documents which we processed based on criteria in Table 1.
 
-Source classes
+Table 1: Categories of Gbagyi-related web content available, with decision on processed data inclusion
 
-Column 1	Column 2	Column 3	Column 4	Column 5	Column 6	Column 7	Column 8	Column 9
-Source class (URL pattern)	Source name	Language / version	Retrieval date	HTTP	Docs	Docs that contributed processed Gbagyi	Processed sentences	Filtering decision
-https://www.bible.com/bible/1621/{BOOK}.{CH}.GAW	Biblica Alkawali Woiwoyi (GAW 1621) chapter	Gbagyi (GAW / Alkawali Woiwoyi)	2026-08-30	200	260	260	11532	accepted as authentic Gbagyi scripture after verse extraction, English-UI filter, and held-out decontamination
-https://www.bible.com/bible/4607/{BOOK}.{CH}.GNB	Biblica Gbagyi Contemporary Bible (GNB 4607) chapter	Gbagyi (GNB / Shekwoyi Ɓədagbma)	2026-08-30	200	249	249	10595	accepted as authentic Gbagyi scripture after verse extraction, English-UI filter, and held-out decontamination
-https://www.bible.com/versions/4607-gnb-gbagyi-nyizeyenya-baibwulu-shekwoyi-%C6%81%C9%99dagbma	Bible.com version page: Gbagyi Contemporary Bible (GNB)	English version-catalogue page (not processed as Gbagyi)	2026-08-30	200	2	0	0	raw provenance only; bible.com version-catalogue pages excluded from processed Gbagyi text
-https://www.scriptureearth.org/00eng.php?iso=gbr	Scripture Earth Gbagyi (gbr) index	English catalogue	2026-08-30	200	2	0	0	raw provenance only; English catalogue/encyclopedia excluded from processed corpus
-https://en.wikipedia.org/wiki/Gbagyi_people	Wikipedia: Gbagyi people	English encyclopedia (not Gbagyi running text)	2026-08-30	200	2	0	0	raw provenance only; English catalogue/encyclopedia excluded from processed corpus
+Source class (URL pattern) Source name Language / version Retrieval date HTTP Docs Docs contributing data Gbagyi? Filtering decision
+https://www.bible.com/bible/1621/{BOOK}.{CH}.GAW Biblica Alkawali Woiwoyi (GAW 1621) chapter Gbagyi (GAW / Alkawali Woiwoyi) 2026-08-30 200 260 260 11532 Included: verses extracted, English-UI text excluded, tested and used for final model.
+Https://www.bible.com/bible/4607/{BOOK}.{CH}.GNB Biblica Gbagyi Contemporary Bible (GNB 4607) chapter Gbagyi (GNB / Shekwoyi dagbma) 2026-08-30 200 249 249 10595 Included: verses extracted, English-UI text excluded, tested and used for final model.
+Https://www.bible.com/versions/4607-gnb-gbagyi-nyizeyenya-baibwulu-shekwoyi-%C6%81%C9%99dagbma Bible.com version page: Gbagyi Contemporary Bible (GNB) English version-catalogue page (not processed as Gbagyi) 2026-08-30 200 2 0 0 Excluded: English catalogue/description; for provenance only.
+Https://www.scriptureearth.org/00eng.php?iso=gbr Scripture Earth Gbagyi (gbr) index English catalogue 2026-08-30 200 2 0 0 Excluded: English catalogue/description; for provenance only.
+Https://en.wikipedia.org/wiki/Gbagyi_people Wikipedia: Gbagyi people English encyclopedia (not Gbagyi running text) 2026-08-30 200 2 0 0 Excluded: English catalogue/description; for provenance only.
 
+AllGAW/GNB chapters are listed as individual entries. For brevity of the provided table, two rows were used to show scripture sections overall in the JSONL data. Any of the following full URLs are in the same JSONL record type as 'non-chapter pages' below:
 
-Every GAW/GNB chapter URL is stored as its own JSONL record. The two scripture rows collapse those chapter URLs; the frozen file lists each URL in full.
+Full non-chapter page URLs
 
-Non-chapter pages (full URLs)
+Column 1 Column 2 Column 3 Column 4 Column 5 Column 6 Column 7 Column 8
+Source URL Source name Language / version Retrieval date HTTP Contributed processed Gbagyi? Sentences Filtering decision
+https://www.bible.com/versions/1621-gaw-alkawali-woiwoyi Bible.com version page: Alkawali Woiwoyi (GAW) English version-catalogue page (not processed as Gbagyi) 2026-08-30 200 no 0 Excluded: English catalogue/description; for provenance only.
+Https://www.bible.com/versions/4607-gnb-gbagyi-nyizeyenya-baibwulu-shekwoyi-dagbma Bible.com version page: Gbagyi Contemporary Bible (GNB) English version-catalogue page (not processed as Gbagyi) 2026-08-30 200 no 0 Excluded: English catalogue/description; for provenance only.
+Https://www.bible.com/languages/gbr Bible.com language index (gbr) English navigation / language catalogue 2026-08-30 200 no 0 Excluded: English catalogue/description; for provenance only.
+Https://en.wikipedia.org/wiki/Gbagyi_language Wikipedia: Gbagyi language English encyclopedia (not Gbagyi running text) 2026-08-30 200 no 0 Excluded: English catalogue/description; for provenance only.
+Https://en.wikipedia.org/wiki/Gbagyi_people Wikipedia: Gbagyi people English encyclopedia (not Gbagyi running text) 2026-08-30 200 no 0 Excluded: English catalogue/description; for provenance only.
+Https://www.scriptureearth.org/00eng.php?iso=gbr Scripture Earth Gbagyi (gbr) index English catalogue 2026-08-30 200 no 0 Excluded: English catalogue/description; for provenance only.
 
-Column 1	Column 2	Column 3	Column 4	Column 5	Column 6	Column 7	Column 8
-Source URL	Source name	Language / version	Retrieval date	HTTP	Contributed processed Gbagyi?	Sentences	Filtering decision
-https://www.bible.com/versions/1621-gaw-alkawali-woiwoyi	Bible.com version page: Alkawali Woiwoyi (GAW)	English version-catalogue page (not processed as Gbagyi)	2026-08-30	200	no	0	raw provenance only; bible.com version-catalogue pages excluded from processed Gbagyi text
-https://www.bible.com/versions/4607-gnb-gbagyi-nyizeyenya-baibwulu-shekwoyi-Ɓədagbma	Bible.com version page: Gbagyi Contemporary Bible (GNB)	English version-catalogue page (not processed as Gbagyi)	2026-08-30	200	no	0	raw provenance only; bible.com version-catalogue pages excluded from processed Gbagyi text
-https://www.bible.com/languages/gbr	Bible.com language index (gbr)	English navigation / language catalogue	2026-08-30	200	no	0	raw provenance only; English catalogue/encyclopedia excluded from processed corpus
-https://en.wikipedia.org/wiki/Gbagyi_language	Wikipedia: Gbagyi language	English encyclopedia (not Gbagyi running text)	2026-08-30	200	no	0	raw provenance only; English catalogue/encyclopedia excluded from processed corpus
-https://en.wikipedia.org/wiki/Gbagyi_people	Wikipedia: Gbagyi people	English encyclopedia (not Gbagyi running text)	2026-08-30	200	no	0	raw provenance only; English catalogue/encyclopedia excluded from processed corpus
-https://www.scriptureearth.org/00eng.php?iso=gbr	Scripture Earth Gbagyi (gbr) index	English catalogue	2026-08-30	200	no	0	raw provenance only; English catalogue/encyclopedia excluded from processed corpus
+As seen in the tables, the only Gbagyi content provided for processing are the GAW and GNB chapter bible pages. Wikipedia and catalog/encyclopedia style articles are available but not used to construct the Gbagyi testset.
 
-
-Wikipedia, Scripture Earth, and bible.com language/version catalogue pages remain in raw JSONL for provenance. None of those pages contributes processed Gbagyi sentences.
-
-Attempted hosts: en.wikipedia.org, www.bible.com, www.scriptureearth.org.
-Documents written to JSONL: 515 (GAW chapters: 260; GNB chapters: 249).
-Unique source URLs: 515.
-Retrieval date: 2026-08-30.
-HTTP status: every stored JSONL record is a successful fetch (HTTP 200). Failed URLs were omitted; status is not an extra JSONL field because the autograder schema is id, url, date_retrieved, raw_text.
-
-Copyright in the Gbagyi Bible text remains with Biblica, Inc. Records store URL provenance for this educational assignment and do not claim ownership of the scripture text.
+Hosts consulted: en.wikipedia.org, www.bible.com, www.scriptureearth.org.
+Documents successfully wrote to JSONL: 515 (260 from GAW bible chapter, 249 from GNB bible chapter).
+Number of unique page URLs found: 515.
+Retrieval date for the sources: 2026-08-30.
+HTTP status: only valid HTTP 200 statuses were recorded (Failed requests were omitted and are not part of the data provided via the requested format: id,url,date\retrieved,raw\text.
+Copyright for any Gbagyi bible texts belongs to the copyholder, Biblica Inc. These were retrieved and used solely for the purposes of the exercise according to U.S. Copyright Law fair use of education.
 
 4. Data collection methodology
 
-scrape_to_jsonl(url_list, output_path) performs a polite GET for each URL:
+scrape\to\jsonl(url\list, output\path) has following criteria for fetching. This script uses a polite request process:
 
-* descriptive academic User-Agent
-* 25-second timeout, three retries
-* 0.7-second delay between requests
-* urllib. robotparser check before fetch
-* no CAPTCHA, login, or robots bypass
+* Uses an academic and descriptive User-Agent string to minimize server-side blocking
+* Sets a 25 second timeout per request and retries failed requests up to 3 times
+* Introduces a 0.7 second delay between each request
+* Prior to every HTTP request, urllib.robotparser is utilized to ensure that the request is allowed by robots.txt
+* Strictly enforces no CAPTCHA, no logins and no bypasses of any robots protocols.
 
-YouVersion chapter HTML is parsed with BeautifulSoup. Verse-like nodes and, when present, the __NEXT_DATA__ payload are preferred over raw page text so that menus, player chrome, and English UI strings are not treated as Gbagyi. Empty or near-empty extractions are discarded. Exact-normalised document bodies are deduplicated.
-
+BeautifulSoup is used to parse HTML from YouVersion pages. The intent here is to avoid anything resembling plain text dumps and to ensure what we extract comes solely from the rendered chapter section of a given biblical book; thus, we prioritize any elements with verse-like markup as well as the structured JSON data contained within NEXT_DATA script tags which are rendered by Javascript on The Bible.com server. Empty or near-empty extractions are simply filtered. Duplicate Gbagyi content documents after processing were removed prior to the creation of the final test set corpus.
 Each JSONL line is:
 
-{"id": 1, "url": "https://...", "date_retrieved": "2026-08-30", "raw_text": "..."}
+{"id":1,"url":"https://...","dateretrieved":"2026-08-30","rawtext":"..."}
 
-The autograder requires integer ID values; we follow that contract.
+The autograder expects integers for id, we are meeting that spec.
 
 5. Corpus statistics
 
-Column 1	Column 2
-Metric	Value
-Raw documents	515
-Raw segmented sentences	23,077
-Filtered sentences	778
-Duplicate tokenized sentences	172
-Held-out exact matches removed	2
-Held-out high-overlap (containment) removed	6
-Final authentic Gbagyi sentences	22,127
-All tokens (incl. punctuation)	466,282
-Word tokens	403,441
-Word vocabulary	12,798
-Token vocabulary (incl. punct.)	12,834
-Mean sentence length (tokens)	21.07
-Median sentence length	19.00
-Min / max sentence length	1 / 96
-Unique URLs	515
+Column 1 | Column 2
 
+-------- | --------
+
+Metric   | Value
+
+Raw documents | 515
+
+Raw segmented sentences | 23077
+
+Filtered sentences | 778
+
+Duplicate tokenized sentences | 172
+
+Held-out exact matches removed | 2
+    Held-out high-overlap (containment) removed | 6
+    Final authentic Gbagyi sentences | 22127
+    All tokens (incl. Punctuation) | 466282
+
+Word tokens | 403441
+
+Word vocabulary | 12798
+
+Token vocabulary (incl. Punct.) | 12834
+    Mean sentence length (tokens) | 21.07
+
+Median sentence length | 19
+
+Min / max sentence length | 1 / 96
+
+Unique URLs | 515
 
 Most frequent word types
 
-Column 1	Column 2	Column 3
-Rank	Word	Frequency
-1	n	33527
-2	ɓa	14607
-3	wo	11033
-4	wa	8730
-5	nu	8415
-6	yi	7284
-7	fye	6171
-8	lo	5968
-9	mi	5674
-10	zhin	5555
+Column 1 | Column 2 | Column 3
 
+-------- | -------- | --------
+
+Rank     | Word     | Frequency
+
+1        | n        | 33527
+
+2        | a        | 14607
+
+3        | wo       | 11033
+
+4        | wa       | 8730
+
+5        | nu       | 8415
+
+6        | yi       | 7284
+
+7        | fye      | 6171
+
+8        | lo       | 5968
+
+9        | mi       | 5674
+
+10       | zhin     | 5555
 
 JSONL validation errors: 0.
 Processed-corpus validation errors: 0.
 
 6. Preprocessing methodology
 
-Pipeline: HTML/XML removal → control-character removal → Unicode NFC → whitespace normalisation → sentence segmentation → custom tokenisation.
+Pipeline: HTML/XML removal; control-character removal; Unicode NFC; whitespace normalization; sentence segmentation; custom tokenization.
 
-NFC is used so that ɓ, ə, subdot letters, and any combining marks stay intact. We do not call unidecode, and we do not fold to ASCII.
+We use NFC in order that „ ; ! ? , Subdot letters; any combining marks etc remain intact. We do not use unidecode. We do not convert to ascii.
 
-Sentencehood is not “one HTML line”. Blocks are split on . ! ? after cleaning. Bible verses without terminal punctuation are kept as one sentence.
+Sentencehood is not "one HTML line." Blocks are split after .  ! 
 
-Processed-corpus filters (reproducible in build_processed_corpus):
+?
 
-1. Wikipedia, Scripture Earth, and bible.com/languages/ pages contribute zero processed sentences.
-2. bible.com/versions/ pages contribute zero processed sentences (raw provenance only).
-3. English-majority sentences and catalogue/template phrases (bible versions, Biblica ministry boilerplate, Wikipedia help text, etc.) are rejected on every source, including chapter pages.
-4. Exact tokenised identity with tests/test_gbagyi_unseen.txt is removed from training (held-out decontamination, not lexicon mining).
-5. High-overlap contamination: a training line is dropped if its word sequence and a test sentence stand in contiguous containment either way and the shorter sequence has ≥ 4 word tokens. Shared function words alone are not enough. Related but non-identical verses (for example aɓi vs aɓeye in otherwise similar clauses) are kept.
+ After cleaning. Verses from the Bible without the final punctuation are taken as one.
 
-The instructor test file is never edited. If decontamination raises perplexity, the higher number is the honest result.
+Processed-corpus filters (reproducible by buildprocessedcorpus):
 
+1. Wikipedia, Scripture Earth and bible.com/languages/ pages will all be processed with 0 sentences output.
+
+2. Bible.com/versions/ pages contribute 0 sentences for training (raw provenance only).
+
+3. Sentences that are Majority English and catalogue/template phrases (bible versions; Biblica ministry boilerplate; Wikipedia help text etc...) are excluded in every source, including chapter pages.
+4. Exact tokenized identity with tests/testgbagyiunseen.txt are removed from training (not lexicon mining; held-out contamination decommmissioning).
+5. High-overlap contamination. If the tokenized word sequence of a line, S, contains the tokenized word sequence, T, and either S or T has 4 or less word tokens in length, then S is discarded from training data, unless the containment is identical to the source. Function words are not sufficient for exclusion. Ai and aeye should remain alongside their nearly identical clauses.
+
+The instructor held out is NEVER edited, if high perplexity results it's the honest score.
 7. Tokenisation methodology
 
-custom_tokenizer is implemented with re only (TOKEN_RE). It:
+Customtokenizer is defined using re only (TOKENRE). This:
 
-* lowercases with Python 3 str.lower() (Ɓ → ɓ)
+* lowercases with Python 3 str.lower() ( )
 * detaches punctuation (yi ., yi,)
-* keeps internal hyphens (bui-bui, zaho-zahoyi, tnu-tnu)
-* emits a single-space string with no leading/trailing space
+* preserves internal hyphens (bui-bui, zaho-zahoyi, tnu-tnu)
+* produces single-space output, stripped of leading/trailing space
 
-This matches the instructor file format, for example:
+This format matches that of the instructor's file, for instance:
 
 Input: Fye zhin bugba bui-bui ntu ge lada dnagmayi shi lo.
 Output: fye zhin bugba bui-bui ntu ge lada dnagmayi shi lo .
 
-Implosive ɓ present in processed corpus: True.
+Imoslve present in processed corpus: True.
 
 8. Stop-word methodology
 
-We curated 35 Gbagyi function words (30 attested, 5 uncertain). Primary linguistic sources are the Gbagyi noun-phrase field manuscript (The Structure of Noun Phrases in Gbagyi, Niger State speaker interviews) and independently attested forms in collected Biblica GAW/GNB chapter text. We did not invent lexemes, and we did not use tests/test_gbagyi_unseen.txt as a lexicon or linguistic source. That file is used only as a held-out evaluation set and as an exclusion list for train/test decontamination.
+We identified 35 Gbagyi function words (30 attested, 5 uncertain). Our primary linguistic resources are the Gbagyi noun-phrase field manuscript (The Structure of Noun Phrases in Gbagyi, Niger State speaker interviews) and other independently attested forms in the Biblica GAW/GNB chapter text corpus. We have not introduced lexemes; also, we have not used tests/testgbagyiunseen.txt as a lexicon or a linguistics source. Its use is confined to the held-out evaluation set and the exclusion list for train/test decontamination.
 
-Where a spelling has more than one grammatical function (for example, o as preposition vs coordinator; ye as demonstrative vs verb/particle; ma as particle vs the verb ‘give birth’), the table records the ambiguity instead of collapsing the senses. Uncertain items (na, ga, a, ku, ma) are labelled uncertain rather than given a forced gloss.
+Where a form has more than one grammatical role (for example, o as a preposition or coordinating conjunction, ye as a demonstrative or a verb/particle, ma as a particle or the main verb ‘give birth’), we have listed the relevant usages separately rather than collapsing them. Uncertain terms (na, ga, a, ku, ma) have been labeled uncertain rather than given a forced gloss.
 
-Stop words are not deleted from cleaned_corpus_group_07.txt. Removing them would make language-model evaluation incomparable with the official tokenized test format.
+We do not remove the stop-words from cleanedcorpusgroup_07.txt, doing so would make the comparison of language model evaluations with the official tokenized test format impossible.
 
-Column 1	Column 2	Column 3	Column 4	Column 5
-Gbagyi	English	Category	Confidence	Source
-mi	I / my	pronoun / possessive	attested	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-omi	my	possessive determiner	attested	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-wo	his / him / her	pronoun / possessive	attested	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-wa	he / she (3sg subject)	pronoun	attested	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-wu	he / she	pronoun	attested	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-ɓa	they (3pl)	pronoun	attested	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-ye	this (near demonstrative). In scripture orthography the same spelling also occurs as a high-frequency verb/particle; those uses are not collapsed here.	demonstrative / function word	attested (demonstrative); other uses vary	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-yi	that (distant demonstrative) / anaphoric particle	demonstrative / particle	attested	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-ho	the (optional determiner)	determiner	attested	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-lo	tense/aspect or predicative particle	auxiliary / particle	attested	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-o	on / in (preposition); also coordinating ‘and’ in some examples	preposition / conjunction	attested (polysemous: preposition and coordinator)	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-n	relativizer / linker ‘that’; also a high-frequency clitic linker	relativizer / conjunction	attested	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-nu	determiner / copular-focus particle	determiner / particle	attested	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-zhni	be / become (copula)	auxiliary / copula	attested	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-zhin	be / become (copula)	auxiliary / copula	attested	Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
-kwo	it (3sg inanimate / resumptive)	pronoun	attested	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-ge	quotative / complementizer ‘that’ (naming, reported speech)	conjunction / complementizer	attested	Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
-nya	of (associative / genitive)	preposition / genitive marker	attested	Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
-to	not / negative particle	negation / particle	attested	Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
-ntu	so that / in order that (purpose)	conjunction	attested	Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
-ntuge	because / so that (purpose-reason)	conjunction	attested	Biblica (1997/2025), Gbagyi Contemporary Bible (GNB), form attested in collected
-gmanyi	one / some (quantifier)	determiner / quantifier	attested	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-vnyanya	all / whole	quantifier / determiner	attested	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-ama	but	conjunction	attested (Hausa loan used as a Gbagyi conjunction in these publications)	Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
-sai	then / only / except	conjunction / particle	attested (Hausa loan used as a Gbagyi particle in these publications)	Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
-har	until / even	conjunction / preposition	attested (Hausa loan used as a Gbagyi function word in this publication)	Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
-shi	then / and then (sequential)	conjunction / particle	attested	Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
-ma	and (coordinator in some constructions) / ‘give birth to’ as a content verb — listed here only as the high-frequency coordinator/particle sense when not the main verb	conjunction / particle	uncertain (polysemous)	Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
-ga	clause-final / focus particle (function word; exact force varies by dialect)	particle	uncertain	Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
-na	associative / high-frequency linker (exact sense varies)	particle / linker	uncertain	Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
-nyi	locative / relational particle (often clause-final)	particle	attested	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-ɓe	come (light verb / motion; also appears in serial constructions)	auxiliary / light verb	attested	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-ɓei	past / sequential auxiliary appearing before zhin in GAW genealogies	auxiliary	attested	Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
-a	they / impersonal plural prefix or pronoun (context-dependent)	pronoun / agreement	uncertain (prefix vs independent pronoun)	Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
-ku	to / and (light preposition; also in the Hausa-origin phrase ku gode ‘give thanks’)	preposition / particle	uncertain	Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
+Gbagyi English Category Confidence Source
 
+mi I / my pronoun / possessive attested Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+omi my possessive determiner attested Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+wo his / him / her pronoun / possessive attested Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+wa he / she (3sg subject) pronoun attested Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+wu he / she pronoun attested Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+a they (3pl) pronoun attested Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+ye this (near demonstrative). In scripture orthography the same spelling also occurs as a high-frequency verb/particle; those uses are not collapsed here. Demonstrative / function word attested (demonstrative); other uses vary Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+yi that (distant demonstrative) / anaphoric particle demonstrative / particle attested Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+ho the (optional determiner) determiner attested Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+lo tense/aspect or predicative particle auxiliary / particle attested Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+o on / in (preposition); also coordinating 'and' in some examples preposition / conjunction attested (polysemous: preposition and coordinator) Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+n relativizer / linker 'that'; also a high-frequency clitic linker relativizer / conjunction attested Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+nu determiner / copular-focus particle determiner / particle attested Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+zhni be / become (copula) auxiliary / copula attested Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+zhin be / become (copula) auxiliary / copula attested Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
+Kwo it (3sg inanimate / resumptive) pronoun attested Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+ge quotative / complementizer 'that' (naming, reported speech) conjunction / complementizer attested Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
+Nya of (associative / genitive) preposition / genitive marker attested Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
+To not / negative particle negation / particle attested Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
+Ntu so that / in order that (purpose) conjunction attested Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
+Ntuge because / so that (purpose-reason) conjunction attested Biblica (1997/2025), Gbagyi Contemporary Bible (GNB), form attested in collected
+gmanyi one / some (quantifier) determiner / quantifier attested Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+vnyanya all / whole quantifier / determiner attested Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+ama but conjunction attested (Hausa loan used as a Gbagyi conjunction in these publications) Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
+Sai then / only / except conjunction / particle attested (Hausa loan used as a Gbagyi particle in these publications) Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
+Har until / even conjunction / preposition attested (Hausa loan used as a Gbagyi function word in this publication) Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
+Shi then / and then (sequential) conjunction / particle attested Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
+Ma and (coordinator in some constructions) / 'give birth to' as a content verb - listed here only as the high-frequency coordinator/particle sense when not the main verb conjunction / particle uncertain (polysemous) Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
+Ga clause-final / focus particle (function word; exact force varies by dialect) particle uncertain Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
+Na associative / high-frequency linker (exact sense varies) particle / linker uncertain Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
+Nyi locative / relational particle (often clause-final) particle attested Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+e come (light verb / motion; also appears in serial constructions) auxiliary / light verb attested Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+ei past / sequential auxiliary appearing before zhin in GAW genealogies auxiliary attested Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
+A they / impersonal plural prefix or pronoun (context-dependent) pronoun / agreement uncertain (prefix vs independent pronoun) Unpublished field manuscript, The Structure of Noun Phrases in Gbagyi (Niger Sta
+ku to / and (light preposition; also in the Hausa-origin phrase ku gode 'give thanks') preposition / particle uncertain Biblica (1997), Alkawali Woiwoyi (GAW), form attested in collected chapter text.
 
-Limitation: several high-frequency particles lack a single published one-word English equivalent. We report uncertainty rather than inventing precision.
+Limitation: There are few published single-word English translations for some high-frequency particles. We've chosen to document this uncertainty rather than invent precision.
+9. Zipf Analysis
 
-9. Zipf analysis
+The types were sorted in decreasing order of frequency and we fitted by numpy.polyfit on natural logs:
 
-Word types were ranked by descending frequency. We fitted
+log(f) = C s log(r)
 
-log(f) = C − s log(r)
+Quantity s C R Types used (N)
 
-by numpy.polyfit on natural logs.
+Estimate 1.402137 12.890745 0.979136 12798
 
-Column 1	Column 2
-Quantity	Estimate
-s	1.402137
-C	12.890745
-R²	0.979136
-Types used (N)	12798
+The figure below zipfrankfrequency.png shows the cloud of (rank,frequency) pairs in log scale, overlaid with the OLS line. A traditional value of 1 is usually considered an ideal large corpus property. Therefore, our estimated s is a description of this particular text corpus (which is heavily influenced by scripture), not by spoken Gbagyi.
+Orthographic variation (GAW zhin vs GNB zhni; Yesu vs Yeisu; optional ) splits what may be a single lemma into different type entities; how variation influences tail steepness depends on its distribution. Unicode distinctions, on the other hand, expand V (versus and b). We claim a corpus-based claim on dialectology.
 
+10. Unigram Model
 
-The figure zipf_rank_frequency.png shows the observed log–log cloud and the OLS line. A classical Zipf exponent near 1 is a large-corpus ideal. Our estimate should be read as a property of this written, scripture-heavy sample, not as a universal constant of spoken Gbagyi.
+These were just the frequency of dictionary tokens. MLE, P(w)=count(w)/N is calculated using N=466,282 tokens and V_unigram = 12,834 tokens (all tokens, punctuation included). With add-one unigram smoothing provided as a comparison to the calculation itself, it cannot be the intended final number for perplexity.
 
-Orthographic variation (GAW zhin vs GNB zhni; Yesu vs Yeisu; optional ə) splits what may be one lemma into several types and therefore flattens or steepens the tail depending on how variation is distributed. Unicode distinctions (ɓ vs b) also expand V. We do not claim a dialectological finding beyond that measurement caveat.
+11. Bigram Model
 
-10. Unigram model
+BigramModel.fit is called for its count of adjecent bigram tokens in a sentence (sentences has no begin or end symbols to better match the assigned template). It returns 444,155 bigram tokens. Vocaulry size corresponds to number of distinct tokens found in train data set, i.e. 12,834 tokens.
 
-Unigram counts are dictionary frequencies on the processed corpus. The MLE is P(w) = count(w) / N with N = 466,282 tokens and V_unigram = 12,834 types (all tokens, including punctuation). Add-1 unigram smoothing is implemented for comparison but is not used for the official perplexity number.
+12. Laplace (Add-1) Smoothing
 
-11. Bigram model
-
-BigramModel.fit counts adjacent token pairs inside each sentence (no sentence-boundary symbols, matching the instructor template). It returned 444,155 bigram tokens. vocab_size is the number of unique unigram types in training, 12,834.
-
-12. Laplace (Add-1) smoothing
-
-P(w2 | w1) = (count(w1, w2) + 1) / (count(w1) + V)
-
-If w1 is unseen, count(w1) = 0 and P = 1/V. A probe with a fake context yields 0.00007792, which equals 1/V = 0.00007792.
+P(w2|w1) = (count(w1, w2) + 1)/(count(w1)+ V)
+If count(w1) equals to 0, P=1/V. The outcome of test on made-up-context word produces the correct value of 0.00007792. I.e. 1/V.
 
 13. Perplexity
 
-Evaluation file: tests/test_gbagyi_unseen.txt (unchanged).
+Test file is tests/testgbagyiunseen.txt and has remained unchanged.
+PP = exp( (1/N) log P(wi | w{i-1}))
+This value is identical with the calculation produced on other part (using base-2 of the problem statement), since log equals the natural logarithm. On separate calculation on log 2, it generates the same value; 1400.802620.
+Quantity Value Test sentences 15 Test tokens 142 Predicted bigrams (N) 127 Training V 12834 Smoothing Laplace / Add-1 Bigram perplexity 1400.802620
 
-PP = exp( −(1/N) ∑ log P(w_i | w_{i-1}) )
+14. Result
 
-which is identical to the assignment’s base-2 form when logs match. An independent log2 recomputation produced 1400.802620 versus 1400.802620.
+*   Authentic JsonL documents collected: 515
 
-Column 1	Column 2
-Quantity	Value
-Test sentences	15
-Test tokens	142
-Predicted bigrams (N)	127
-Training V	12834
-Smoothing	Laplace / Add-1
-Bigram perplexity	1400.802620
+*   Sentences finalized: 22,127
 
+*   Word vocabularies: 12,798
 
-14. Results
+*   Zipf s=1.4021, R=0.9791
 
-* Authentic JSONL documents: 515
-* Final Gbagyi sentences: 22,127
-* Word vocabulary: 12,798
-* Zipf s = 1.4021, R² = 0.9791
-* Blind-test bigram perplexity = 1400.8026
-
-The sentence count meets the 2,500-sentence assignment floor from collected public Gbagyi text, not from synthesis.
+*   Bigram perplexity evaluated on blind test-set: 1400.8026
+Final sentence count satisfied the minimum requirement of 2,500 sentences for this assignment; they were actually collected from public source on Christian Gbagyi material, not generated from language models.
 
 15. Discussion
 
-The corpus is large enough for a classroom benchmark but narrow in genre: published Christian scripture in two Biblica orthographies. That is appropriate for the hidden test file, which is written in the same register, and it is also a limitation for any claim about “Gbagyi in general”. High-frequency items are function words and names (wa, zhin/zhni, n, nu, yesu/yeisu). Zipf’s law holds only approximately; R² = 0.979 on a still-small type inventory.
+corpus size for class purpose; but it is not wide-spread type. It consists of Christian writings in two distinct versions (Biblica), so it cannot serve for general description of Gbagyi as a spoken or written language. High freq. Of certain word types refer to function word; like wa, zhin/zhni, n, nu, Yesu/Yeisu are functions words and names. Zipf’s law; here represented as r is an approximation as the type set (R 0.9791) and is still small.
+Gaps in diacritics and preservation of the implosive feature have been maintained; tonality is very lacking, thus most likely tonal minimal pairs merged. Merging GAW and GNB is what best suits for the research: they are indeed both legitimate published Gbagyi works.
 
-Diacritics and the implosive ɓ are preserved. Tone is largely unmarked in these digital editions, so tonal minimal pairs, if they exist in speech, are merged in writing. Mixing GAW and GNB increases lexical fragmentation and is scientifically honest: both are legitimate Gbagyi publications.
+16. Limits of the approach
 
-16. Limitations
-
-1. Bible-register concentration. After English/catalogue filtering, essentially all processed sentences are New Testament translations in two Biblica orthographies (GAW and GNB). This matches the hidden test register and is also a serious domain limitation: the Zipf exponent, vocabulary, and perplexity describe written Christian Gbagyi, not spoken Gbagyi or other genres.
-2. Two official orthographies inflate vocabulary (zhin/zhni, Yesu/Yeisu).
-3. Sentence splitting on punctuation is an approximation; some verses contain coordinated clauses.
-4. Stop-word glosses for a few particles remain uncertain; 5 of 35 entries are labelled uncertain.
-5. Held-out decontamination uses exact match plus ≥4-token contiguous containment. Near-paraphrases that do not contain a test word sequence are retained.
-6. The instructor autograder’s BigramModel import path still points at Group 01 Nupe; we did not move Gbagyi files into Nupe folders.
-7. GitHub Actions uses a shallow clone, so the collaboration test may fail on CI even with a genuine multi-author history.
+1.  Bible domain coverage, English and catalogue content exclusion after analysis led to only two publication versions. Therefore all findings regardchristian Gbagyi and cannot generalize to Gbagyi in general. Hence, it becomes limited bydomain, this is true for Zipf exponent, vocab, and perplexity.
+2.  The use of GAW and GNB increases number of word types to a certain extent.
+3.  Punctuation segmentation leads to inaccurate parsing of sentence boundaries, since sometimes single verse may include coordinating conjunction.
+4.  Some stop word interpretations are questionable; 5 of the 35 entries marked by an indication of being questionable.
+5.  Matching test sentences with actual training words based on exact wording up to four consecutive word is good for decontamination; near paraphrase is excluded only if the four contiguous word sequence IS matched, therefore near paraphrase not containing a test keyphrase in the matched words has not been removed.
+6.  The framework imported by test instructor, uses default Nupe location which is Group 01. As we moved gbagyi material elsewhere (and didn't make adjustment), import will point there.
+7.  Shallow clone on Github Actions failed the collaboration test (though genuinely present from multiple author); but it could be the shallow clone and no real 3-factor test used.
 
 17. Reproducibility
 
-From the repository root, with requirements.txt installed (Python 3.10 in CI):
+The following commands can be used for running the submission module under the root of the repository, assuming Python 3.10 is installed and requirements.txt are downloaded.
 
-python submissions/group_07_gbagyi/HW1_assignment.py
+Python submissions/group07gbagyi/HW1_assignment.py
+
 pytest tests/autograder_eval.py -v --tb=short
 
-The notebook imports the same module. Collection respects robots.txt and will skip a URL if a site later disallows it. Randomness is not used in preprocessing, Zipf, or perplexity.
+Importing is done on the above shown module. Collecting is performed with consideration to robots.txt, so if a site deactivates, this address can be missed. Randomness not applied in preprocessing; Zipf and perplexity calculation.
 
 18. Conclusion
 
-Group 07 delivers an inspectable Gbagyi baseline: provenanced JSONL, a validated one-sentence-per-line corpus, a documented custom tokenizer, an attested stop-word table, a measured Zipf fit, and a from-scratch Add-1 bigram model evaluated on the official unseen file. The numerical results above are generated from those artefacts.
-
+The Gbagyi baseline delivered by group 7 is demonstrably inspected, has certified JsonL source, a validated corpus with the split on a single sentence per line, a known custom tokenizer used in this job, a documented table of stop-word entries and demonstrated work with Zipf fitting. A by-hand generated Add-1 bigram model was made, and the results above evaluated on the official blind test set.
 References
 
 1. Biblica, Inc. (1997). *Alkawali Woiwoyi* (GAW). Retrieved from https://www.bible.com/versions/1621-gaw-alkawali-woiwoyi
