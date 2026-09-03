@@ -10,21 +10,19 @@ Date: 2026-08-30
 
 Abstract
 
-This report details the creation of a reproducible, low-resource NLP pipeline for the Gbagyi language/tribe. We obtained real Gbagyi text by collecting, using Python requests, material from theBiblica/YouVersion Bible pages, checkingrobots.txt and avoiding non-Gbagyi materials. This text was cleaned and tokenized using Unicode-safe regular expressions and a custom tokenizer. 
+This report explains how we created a reproducible, low-resource NLP pipeline for the Gbagyi language. We gathered actual Gbagyi text by requesting, via Python requests, content from theBiblica/YouVersion Bible pages, and respectingrobots.txt and also ignoring any material that was not in Gbagyi. Gbagyi text was cleaned and tokenized using Unicode-aware regular expressions and a custom tokenizer.
 
-The pipeline yields a corpus of 22,127 sentences, 403,441 word tokens, and 12,798 unique words. 
-
-ThroughOrdinary least squares regression on the log-log rank-frequency curve, we estimated the Zipf exponent s = 1.4021 (R = 0.9791). A from-scratch bigram model with Laplace smoothing attained a perplexity of 1400.8026 on the instructor’s unmodified testing file tests/testgbagyiunseen.txt. No sentences were manually produced.
+Our pipeline produces 22,127 sentences, 403,441 tokens, and 12,798 unique words. By Ordinary least squares regression on the log-log rank-frequency curve, we derived the Zipf exponents = 1.4021 (R = 0.9791). A from scratch bigram model with Laplace smoothing achieved a perplexity of 1400.8026 on the unmodified tester on the instructors file tests/testgbagyiunseen.txt. We did not write any sentences by hand.
 
 1. Introduction
 
-The Gbagyi language (ISO 639-3: gbr) is a Nupoid language spoken in the central region of Nigeria. There are few documented textual sources and orthography inconsistencies. In published text, tone markers are often omitted. 
+The Gbagyi language (ISO 639-3: gbr) is a Nupoid language in central Nigeria. Textual sources have been scarce, and there are issues with consistency in orthography. Tones have commonly been excluded when they are printed.
 
-The objective is to develop an explainable basic NLP setup: scrape Gbagyi documents that are publicly readable and match the scripture context in the official testing file. 
+The goal is therefore to design a truly explainable basic NLP infrastructure-scraping publicly accessible Gbagyi text files that conform to the register specified in the official testing document.
 
-The approach includes implementing a suitable scraper, building a custom tokenizer that works with Gbagyi, applying a standard set of tests: Zipf's law and an n-gram language model on data scraped without leveraging English pretrained NLP techniques.
+We implement an appropriately designed scraper and construct our own Gbagyi tokenizer, test a standard range of test metrics-Zipf's law and n-gram language model-against both the scraped and (when relevant) original data. This is accomplished without any reliance on english pre-trained NLP techniques whatsoever.
 
-The given unseen testing file uses the bible/shekwoi style of registers: scripture-in particular Yahudiyi, shekwoi, aduwa, and jesun-which we are using as our main source, and from which we carefully pick our documents from Biblia/YouVersion after checking we receive the needed html with no captcha on the web. We additionally look at Wikipedia and similar entries with caution as our secondary source as they describe Gbagyi more broadly, however, as noted below. Robots.txt is inspected and allowed resources selected.
+The unseen test file given uses an equivalent register format-in this particular case, it relies on bible/shekwoi registers. We therefore use scripture-Yahua, shekwoi, Aduwa and jesun-as our primary data source, and selectively download individual documents from Biblia/YouVersion once we have confirmed that a human has rendered the correct HTML and no captcha challenge appears on web page. We also source Wikipedia and various encyclopedia entries with caution, with these secondary sources offering descriptions of Gbagyi generally, though, as addressed below. Robots.txt was examined to ensure that relevant portions of the web can be freely indexed.
 
 2. Objectives
 
